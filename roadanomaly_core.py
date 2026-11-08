@@ -4,13 +4,14 @@ Same architectures as notebooks/RoadAnomaly_complete.ipynb, so the exported road
 Used by streamlit_app.py.
 """
 import time
+from pathlib import Path
 
 import numpy as np
 import scipy.ndimage as ndi
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from torchvision import models
 
 
@@ -127,7 +128,10 @@ class Detector:
         self.std = torch.tensor(self.pkg["std"]).view(3, 1, 1)
         self.threshold = float(self.pkg["threshold"])
         self.name = self.pkg["model_name"]
+        self.arch = self.pkg["arch"]
         self.metrics = self.pkg.get("test_metrics", {})
+        self.n_params = sum(p.numel() for p in self.model.parameters())
+        self.file_mb = Path(model_file).stat().st_size / 1e6
 
     def to_input(self, rgb):
         # same preprocessing as in training: resize to 512x288, scale to [0, 1], ImageNet normalisation
@@ -194,19 +198,46 @@ def alert_from(prob, threshold):
                         "position": f"{['left', 'centre', 'right'][min(int(cx * 3), 2)]}, "
                                     f"{['far', 'middle', 'near'][min(int(cy * 3), 2)]}",
                         "box (x0, y0, x1, y1)": [int(sl[1].start), int(sl[0].start), int(sl[1].stop), int(sl[0].stop)],
-                        "max score": round(float(prob[sl][region].max()), 3)})
+                        "max score": round(float(prob[sl][region].max()), 3),
+                        "mean score": round(float(prob[sl][region].mean()), 3)})
     objects.sort(key=lambda o: -o["area (%)"])
     info = {"alert": len(objects) > 0, "objects": len(objects),
             "anomaly area (%)": round(100 * float(mask.mean()), 2),
             "main position": objects[0]["position"] if objects else "-",
+            "max score": round(float(prob.max()), 3),
             "threshold": round(float(threshold), 2), "details": objects}
     return mask, info
 
 
-def overlay(rgb, mask):
+def overlay(rgb, mask, objects=None):
+    # anomaly pixels in red; with objects, a numbered box around each detected obstacle
     vis = np.array(rgb).astype(np.float32) / 255.0
     vis[mask] = 0.45 * vis[mask] + 0.55 * np.array([1.0, 0.1, 0.1])
-    return Image.fromarray((vis * 255).astype(np.uint8))
+    out = Image.fromarray((vis * 255).astype(np.uint8))
+    if objects:
+        draw = ImageDraw.Draw(out)
+        lw = max(2, round(out.width / 400))
+        size = max(14, round(out.width / 55))                 # label size follows the image size
+        try:
+            font = ImageFont.load_default(size=size)          # Pillow >= 10.1
+        except TypeError:
+            font = ImageFont.load_default()
+        for k, o in enumerate(objects, start=1):
+            x0, y0, x1, y1 = o["box (x0, y0, x1, y1)"]
+            draw.rectangle([x0 - lw, y0 - lw, x1 + lw, y1 + lw], outline=(255, 214, 0), width=lw)
+            tl, tt, tr, tb = draw.textbbox((0, 0), f"#{k}", font=font)
+            tag_w, tag_h = tr - tl + 10, tb - tt + 8
+            ty = y0 - lw - tag_h if y0 - lw - tag_h >= 0 else y1 + lw
+            draw.rectangle([x0 - lw, ty, x0 - lw + tag_w, ty + tag_h], fill=(255, 214, 0))
+            draw.text((x0 - lw + 5 - tl, ty + 4 - tt), f"#{k}", fill=(0, 0, 0), font=font)
+    return out
+
+
+def crop(rgb, box, margin=0.25, min_side=64):
+    # zoom on one object, with some context around it
+    x0, y0, x1, y1 = box
+    mx, my = max(int((x1 - x0) * margin), min_side // 2), max(int((y1 - y0) * margin), min_side // 2)
+    return rgb.crop((max(x0 - mx, 0), max(y0 - my, 0), min(x1 + mx, rgb.width), min(y1 + my, rgb.height)))
 
 
 def heat_image(values, rgb=None):
