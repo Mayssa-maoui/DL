@@ -27,7 +27,7 @@ from roadanomaly_core import Detector, alert_from, heat_image, overlay
 
 HERE = Path(__file__).resolve().parent
 MODEL_FILE = HERE / "roadanomaly_model.pt"
-EXAMPLES = {p.stem: p for p in sorted((HERE / "examples").glob("*.jpg"))}
+EXAMPLES = {p.stem: p for p in sorted([*(HERE / "examples").glob("*.jpg"), *HERE.glob("*.jpg")])}   # examples/ or repo root
 
 st.set_page_config(page_title="Road anomaly detector", layout="wide")
 
@@ -101,7 +101,7 @@ with tab_one:
     elif EXAMPLES:
         choice = st.selectbox("Test image from RoadAnomaly", list(EXAMPLES))
         image_bytes, name = EXAMPLES[choice].read_bytes(), EXAMPLES[choice].name
-        st.caption("Example photos from Wikimedia Commons, CC licences: see examples/CREDITS.txt.")
+        st.caption("Example photos from Wikimedia Commons, CC licences: see CREDITS.txt in the repository.")
 
     if image_bytes is None:
         st.info("Upload a road image to start.")
