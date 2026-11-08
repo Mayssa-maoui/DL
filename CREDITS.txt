@@ -9,3 +9,14 @@ cones02.jpg    "BroadmoorManholeConesJune2008", Infrogmation, CC BY-SA 3.0
                https://commons.wikimedia.org/wiki/File:BroadmoorManholeConesJune2008.jpg
 vehicle01.jpg  "A man carrying dry grass on bicycle...", KelvinJM, CC BY-SA 4.0
                https://commons.wikimedia.org/wiki/File:A_man_carrying_dry_grass_on_bicycle_for_domestic_animal_like_cows.jpg
+
+New photos (SegmentMeIfYouCan AnomalyTrack, Chan et al. 2021; never used to train the deployed model):
+
+new_giraffe.jpg  Entropy1963, public domain
+                 https://commons.wikimedia.org/wiki/File:Giraffe_crossing_the_road_in_Kruger_National_Park.jpg
+new_sloth.jpg    Ian D. Keating, CC BY 2.0
+                 https://commons.wikimedia.org/wiki/File:Three-toed_sloth_crossing_road_in_Costa_Rica.jpg
+new_camels.jpg   CC0 https://creativecommons.org/publicdomain/zero/1.0/
+                 https://pxhere.com/en/photo/1548875
+new_elephant.jpg TenSafeFrogs, CC BY 2.0 https://creativecommons.org/licenses/by/2.0/deed.en
+                 https://www.flickr.com/photos/tensafefrogs/6436125475
